@@ -6,36 +6,40 @@ namespace HalKonzol
     {
         static string command = "run";
         static bool loggedIn = false;
-        static ServerConnection connection = new("http://localhost:3000");
+        static ServerConnection connection = new ServerConnection("http://localhost:3000");
         
         static async Task Main(string[] args)
         {
             while (command == "run")
             {
-                DoStg(WriteMenu());
+                int number = WriteMenu();
+                await DoStg(number);
             }
         }
 
-        static void DoStg(int number)
+        static async Task DoStg(int number)
         {
             if (!loggedIn)
             {
                 switch (number)
                 {
                     case 1:
-                        ListFish();
+                        await ListFish();
                         break;
                     case 2:
-                        FilterFish();
+                        await FilterFish();
                         break;
                     case 3:
-                        SearchFish();
+                        await SearchFish();
                         break;
                     case 4:
-                        GroupFish();
+                        await GroupFish();
                         break;
                     case 5:
-                        ListFish();
+                        await Login();
+                        break;
+                    case 6:
+                        command = "exit";
                         break;
                 }
             }
@@ -44,53 +48,87 @@ namespace HalKonzol
                 switch (number)
                 {
                     case 1:
-                        ListMyFish();
+                        await ListMyFish();
                         break;
                     case 2:
-                        AddFish();
+                        await AddFish();
                         break;
                     case 3:
-                        Logout();
+                        await Logout();
                         break;
                 }
             }
             
         }
 
-        private static void Logout()
+        static async Task Logout()
         {
-            
+            loggedIn = false;
+            WriteMenu();
         }
 
-        private static void AddFish()
+        static async Task AddFish()
         {
-            
+            try
+            {
+                Console.WriteLine("Hal neve: ");
+                string name = Console.ReadLine().Trim();
+                Console.WriteLine("Hal súlya: ");
+                string weightString = Console.ReadLine().Trim();
+                if(double.TryParse(weightString, out double weight))
+                {
+                    await connection.PostFish(name, weight);
+                }
+                else
+                {
+                    Console.WriteLine("Érvénytelen súly!");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
-        private static void ListMyFish()
+        static async Task ListMyFish()
         {
-            
+            List<Fish> allFish = await connection.GetMyFish();
+            allFish.ForEach(fish => Console.WriteLine($"Név: {fish.name}, súly: {fish.weight * 100} dkg"));
+            Console.ReadKey();
         }
 
-        private static void GroupFish()
-        {
-            
-        }
-
-        private static void SearchFish()
-        {
-            
-        }
-
-        static async void FilterFish()
+        static async Task GroupFish()
         {
             List<Fish> allFish = await connection.GetFish();
+            int under100 = allFish.Where(fish => fish.weight < 100).Count();
+            int under200 = allFish.Where(fish => fish.weight >= 100 && fish.weight <= 200).Count();
+            int over200 = allFish.Where(fish => fish.weight > 200).Count();
+            Console.WriteLine("Statisztika");
+            Console.WriteLine("Halak súlya csoportosítva");
+            Console.WriteLine($"100kg alatt: {under100}");
+            Console.WriteLine($"100kg - 200kg: {under200}");
+            Console.WriteLine($"200kg felett: {over200}");
+        }
+
+        static async Task SearchFish()
+        {
+            List<Fish> allFish = await connection.GetFish();
+            Console.WriteLine("Add meg a keresett szórészletet: ");
+            string name = Console.ReadLine().Trim();
+            allFish.Where(fish => fish.name.Contains(name)).ToList().ForEach(fish => Console.WriteLine($"Név: {fish.name}, súly: {fish.weight * 100} dkg"));
+            Console.ReadKey();
+        }
+
+        static async Task FilterFish()
+        {
+            List<Fish> allFish = await connection.GetFish();
+            Console.WriteLine("Add meg a minimum súlyt (dkg):");
             int number = ValidateNumber(0, int.MaxValue);
             allFish.Where(fish => fish.weight * 100 >= number).ToList().ForEach(fish => Console.WriteLine($"Név: {fish.name}, súly: {fish.weight * 100} dkg"));
             Console.ReadKey();
         }
 
-        static async void ListFish()
+        static async Task ListFish()
         {
             List<Fish> allFish = await connection.GetFish();
             allFish.ForEach(fish => Console.WriteLine($"Név: {fish.name}, súly: {fish.weight * 100} dkg"));
@@ -100,6 +138,7 @@ namespace HalKonzol
         static int WriteMenu()
         {
             Console.Clear();
+            Console.WriteLine(loggedIn);
             if (!loggedIn)
             {
                 Console.WriteLine("[1] - Halak listázása");
@@ -107,9 +146,10 @@ namespace HalKonzol
                 Console.WriteLine("[3] - Név szerinti keresés rész-illesztéssel");
                 Console.WriteLine("[4] - Halak csoportosítása súly alapján");
                 Console.WriteLine("[5] - Bejelentkezés");
+                Console.WriteLine("[6] - Kilépés");
                 Console.WriteLine("");
                 Console.WriteLine("Kérlek válassz egy opciót");
-                return ValidateNumber(1,5);
+                return ValidateNumber(1,6);
             }
             else
             {
@@ -122,7 +162,7 @@ namespace HalKonzol
 
         static int ValidateNumber(int min, int max)
         {
-            Console.Write($"Add meg a számot {min} és {max} között: ");
+            Console.WriteLine($"Add meg a számot {min} és {max} között: ");
             string userInput = Console.ReadLine().Trim();
             bool valid = int.TryParse(userInput, out int result);
 
@@ -135,9 +175,23 @@ namespace HalKonzol
             return ValidateNumber(min, max);
         }
 
-        static void login()
+        static async Task Login()
         {
-            
+            try
+            {
+                Console.Write("Felhasználónév: ");
+                string username = Console.ReadLine().Trim();
+                Console.Write("Jelszó: ");
+                string password = Console.ReadLine().Trim();
+                if(await connection.Login(username, password))
+                {
+                    loggedIn = true;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
     }
 }

@@ -74,22 +74,30 @@ namespace HalKonzol
 
         public async Task<bool> Login(string username, string password)
         {
-            //létrehozunk egy példányt/objektumot
-            User user = new User(username, password);
-            //JSON-né alakítjuk
-            string jsonString = JsonSerializer.Serialize(user);
-            StringContent content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-            //elküldjük a POST-ot
-            HttpResponseMessage response = await client.PostAsync("/login", content);
-            //biztos sikerül-e
-            response.EnsureSuccessStatusCode();
-            //kiolvassuk a választ
-            string responseString = await response.Content.ReadAsStringAsync();
-            //elmentjük a választ (jelen esetben a tokent)
-            Token result = JsonSerializer.Deserialize<Token>(responseString);
-            //beállítjuk headernek: Authorization: token
-            client.DefaultRequestHeaders.Add("authorization", result.token);
-            Console.WriteLine("Sikeres bejelentkezés!");
+            try
+            {
+                //létrehozunk egy példányt/objektumot
+                User user = new User(username, password);
+                //JSON-né alakítjuk
+                string jsonString = JsonSerializer.Serialize(user);
+                StringContent content = new StringContent(jsonString, Encoding.UTF8, "application/json");
+                //elküldjük a POST-ot
+                HttpResponseMessage response = await client.PostAsync("/login", content);
+                //biztos sikerül-e
+                response.EnsureSuccessStatusCode();
+                //kiolvassuk a választ
+                string responseString = await response.Content.ReadAsStringAsync();
+                //elmentjük a választ (jelen esetben a tokent)
+                Token result = JsonSerializer.Deserialize<Token>(responseString);
+                //beállítjuk headernek: Authorization: token
+                client.DefaultRequestHeaders.Add("authorization", result.token);
+                Console.WriteLine("Sikeres bejelentkezés!");
+                return true;
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Sikertelen bejelentkezés!");
+            }
             return false;
         }
     }
