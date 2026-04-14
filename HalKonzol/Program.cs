@@ -12,8 +12,7 @@ namespace HalKonzol
         {
             while (command == "run")
             {
-                int number = WriteMenu();
-                await DoStg(number);
+                await DoStg(WriteMenu());
             }
         }
 
@@ -108,6 +107,7 @@ namespace HalKonzol
             Console.WriteLine($"100kg alatt: {under100}");
             Console.WriteLine($"100kg - 200kg: {under200}");
             Console.WriteLine($"200kg felett: {over200}");
+            Console.ReadKey();
         }
 
         static async Task SearchFish()
@@ -138,7 +138,6 @@ namespace HalKonzol
         static int WriteMenu()
         {
             Console.Clear();
-            Console.WriteLine(loggedIn);
             if (!loggedIn)
             {
                 Console.WriteLine("[1] - Halak listázása");
@@ -183,10 +182,7 @@ namespace HalKonzol
                 string username = Console.ReadLine().Trim();
                 Console.Write("Jelszó: ");
                 string password = Console.ReadLine().Trim();
-                if(await connection.Login(username, password))
-                {
-                    loggedIn = true;
-                }
+                loggedIn = await connection.Login(username, password);
             }
             catch (Exception e)
             {
